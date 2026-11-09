@@ -1,20 +1,33 @@
-# Alfa-Course: закрытые данные
-data/
+
+# Alfa-Course: private source data
+/data/
 *.backup
 *.dump
 *.sql.gz
 
-# Секреты и настройки
+# Secrets and environment
 .env
 .env.*
 !.env.example
 
-# Виртуальное окружение
+# Python environments
 .venv/
 venv/
 
-# VS Code
-.vscode/
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
 
-# Логи
+# Generated reports
+data_pipeline/reports/
+recommender/reports/
+
+# Local ML artifacts
+*.pkl
+*.joblib
+*.parquet
+
+# Local settings and logs
+.vscode/
 *.log
