@@ -307,66 +307,77 @@ class ContentBasedRecommender:
 
     def recommend_cold_start(self, top_k=5):
         """
-        Рекомендации новому пользователю без истории
-        и без заполненной анкеты.
+        Стартовая подборка для нового предпринимателя.
 
-        Формирует подборку по базовым бизнес-темам.
+        Используем проверенные вводные материалы
+        из исходного каталога Альфа-Курса.
         """
 
         if top_k <= 0:
             return []
 
+        starter_materials = [
+            (
+                "Старт бизнеса",
+                "Первый месяц после открытия ИП: что нужно сделать",
+            ),
+            (
+                "Финансы и учет",
+                "5 базовых документов для нового бизнеса",
+            ),
+            (
+                "Маркетинг",
+                "Личный бренд предпринимателя: практическое руководство",
+            ),
+            (
+                "Продажи и переговоры",
+                "Как правильно составить прайс-лист",
+            ),
+            (
+                "Клиентский сервис",
+                "Где и как вести учёт клиентов",
+            ),
+        ]
+
+        # Индекс по нормализованному названию
+        materials_by_title = {}
+
+        for material in self.materials:
+            title = normalize_text(material["title"])
+            materials_by_title.setdefault(title, []).append(material)
+
         recommendations = []
         used_materials = set()
 
-        for topic, query in STARTER_TOPICS:
+        for topic, title in starter_materials:
 
-            query_vector = self.vectorizer.transform([query])
-
-            similarities = cosine_similarity(
-                query_vector,
-                self.matrix,
-            ).ravel()
-
-            candidates = []
-
-            for idx, material in enumerate(self.materials):
-
-                if not matches_topic(
-                    material["topics"],
-                    topic,
-                ):
-                    continue
-
-                material_key = (
-                    material["material_type"],
-                    material["material_id"],
-                )
-
-                if material_key in used_materials:
-                    continue
-
-                candidates.append(
-                    (idx, float(similarities[idx]))
-                )
-
-            if not candidates:
-                continue
-
-            best_idx, best_score = max(
-                candidates,
-                key=lambda item: item[1],
+            candidates = materials_by_title.get(
+                normalize_text(title), []
             )
 
-            if best_score <= 0:
+            # Берём только статьи из нужной темы
+            candidates = [
+                material
+                for material in candidates
+                if material["material_type"] == "article"
+                and matches_topic(material["topics"], topic)
+            ]
+
+            if not candidates:
+                print(
+                    f"WARNING: Starter material not found: {title}"
+                )
                 continue
 
-            material = self.materials[best_idx]
+            material = candidates[0]
 
             material_key = (
                 material["material_type"],
                 material["material_id"],
             )
+
+            if material_key in used_materials:
+                continue
 
             used_materials.add(material_key)
 
@@ -376,18 +387,22 @@ class ContentBasedRecommender:
                 "title": material["title"],
                 "url": material["url"],
                 "payment_status": material["payment_status"],
-                "similarity": round(best_score, 4),
-                "score": round(best_score, 4),
+
+                # Здесь нет TF-IDF-расчёта.
+                "similarity": None,
+                "score": None,
+
                 "reasons": [
-                    f"Стартовый материал по теме: {topic}"
+                    f"Рекомендуем для знакомства с темой: {topic}"
                 ],
                 "next_step": (
-                    "Изучите материал и выберите "
-                    "интересующее направление"
+                    "Изучите материал или укажите "
+                    "свою бизнес-задачу для персонального подбора"
                 ),
             })
 
         return recommendations[:top_k]
+
 
     # --------------------------------------------------------
     # Персонализированные рекомендации
