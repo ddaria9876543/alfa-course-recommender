@@ -1,8 +1,11 @@
 
-import csv
-import io
+import os
 import re
-import subprocess
+from pathlib import Path
+
+import psycopg
+from dotenv import load_dotenv
+from psycopg.rows import dict_row
 
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -14,9 +17,15 @@ from sklearn.metrics.pairwise import cosine_similarity
 # TF-IDF + персонализация + Cold Start
 # ============================================================
 
-CONTAINER = "alfa_course_postgres"
-DB_USER = "alfa_user"
-DB_NAME = "alfa_course"
+# Переменные окружения задаются в корневом .env (локально)
+# либо окружением контейнера (при запуске через Docker Compose).
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(PROJECT_ROOT / ".env")
+
+DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
+DB_PORT = int(os.getenv("POSTGRES_PORT", "5433"))
+DB_USER = os.getenv("POSTGRES_USER", "alfa_user")
+DB_NAME = os.getenv("POSTGRES_DB", "alfa_course")
 
 # Экспериментальные веса персонализации
 MIN_SIMILARITY = 0.08
@@ -163,12 +172,10 @@ def matches_topic(material_topics, topic):
 # ============================================================
 
 def load_materials():
-    """Загружает материалы из analytics.dm_materials."""
-
+    """Загружает каталог analytics.dm_materials напрямую из PostgreSQL."""
     query = """
-    COPY (
         SELECT
-            material_id,
+            material_id::text AS material_id,
             material_type,
             title,
             COALESCE(description, '') AS description,
@@ -180,50 +187,36 @@ def load_materials():
             search_text
         FROM analytics.dm_materials
         ORDER BY material_type, material_id
-    ) TO STDOUT WITH (FORMAT CSV, HEADER TRUE);
     """
 
-    command = [
-        "docker",
-        "exec",
-        "-i",
-        CONTAINER,
-        "psql",
-        "-X",
-        "-v",
-        "ON_ERROR_STOP=1",
-        "-U",
-        DB_USER,
-        "-d",
-        DB_NAME,
-        "-c",
-        query,
-    ]
+    password = os.getenv("POSTGRES_PASSWORD")
+    if not password:
+        raise RuntimeError(
+            "POSTGRES_PASSWORD не задан. Проверьте .env или переменные окружения."
+        )
 
     try:
-        result = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            check=True,
-        )
-    except subprocess.CalledProcessError as exc:
+        with psycopg.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            dbname=DB_NAME,
+            user=DB_USER,
+            password=password,
+            connect_timeout=10,
+        ) as connection:
+            with connection.cursor(row_factory=dict_row) as cursor:
+                cursor.execute(query)
+                materials = cursor.fetchall()
+    except psycopg.Error as exc:
         raise RuntimeError(
-            f"Ошибка загрузки материалов: {exc.stderr}"
+            "Не удалось получить материалы из PostgreSQL. "
+            "Проверьте подключение и витрину analytics.dm_materials."
         ) from exc
 
-    materials = list(
-        csv.DictReader(io.StringIO(result.stdout))
-    )
-
     if not materials:
-        raise RuntimeError(
-            "Каталог материалов пуст"
-        )
+        raise RuntimeError("Каталог материалов пуст")
 
     return materials
-
 
 # ============================================================
 # РЕКОМЕНДАТЕЛЬНАЯ МОДЕЛЬ
