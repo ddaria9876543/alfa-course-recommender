@@ -218,6 +218,53 @@ def load_materials():
 
     return materials
 
+
+def prepare_materials(raw_materials):
+    """Очищает каталог от дубликатов и пропусков,
+    формирует fallback-текст при неполном описании.
+    """
+    cleaned = []
+    seen_keys = set()
+    seen_titles = set()
+
+    for item in raw_materials:
+        key = (
+            normalize_text(item.get("material_type")),
+            str(item.get("material_id") or "").strip(),
+        )
+        title_norm = normalize_text(item.get("title"))
+
+        # Пропускаем записи без названия или дубликаты
+        if not title_norm or key in seen_keys or title_norm in seen_titles:
+            continue
+
+        seen_keys.add(key)
+        seen_titles.add(title_norm)
+
+        material = dict(item)
+        material["description"] = str(material.get("description") or "").strip()
+        material["topics"] = str(material.get("topics") or "").strip()
+        material["tags"] = str(material.get("tags") or "").strip()
+        material["industries"] = str(material.get("industries") or "").strip()
+
+        # Если search_text пустой или описание отсутствует — собираем из доступных полей
+        search_text = str(material.get("search_text") or "").strip()
+        if not search_text or not material["description"]:
+            fallback_parts = [
+                material["title"],
+                material["description"],
+                material["topics"],
+                material["tags"],
+                material["industries"],
+            ]
+            search_text = " ".join(part for part in fallback_parts if part)
+
+        material["search_text"] = search_text
+        cleaned.append(material)
+
+    return cleaned
+
+
 # ============================================================
 # РЕКОМЕНДАТЕЛЬНАЯ МОДЕЛЬ
 # ============================================================
@@ -225,7 +272,7 @@ def load_materials():
 class ContentBasedRecommender:
 
     def __init__(self, materials):
-        self.materials = materials
+        self.materials = prepare_materials(materials)
 
         self.vectorizer = TfidfVectorizer(
             analyzer="char_wb",
@@ -238,7 +285,7 @@ class ContentBasedRecommender:
 
         texts = [
             material["search_text"] or ""
-            for material in materials
+            for material in self.materials
         ]
 
         self.matrix = self.vectorizer.fit_transform(texts)
@@ -380,6 +427,8 @@ class ContentBasedRecommender:
                 "title": material["title"],
                 "url": material["url"],
                 "payment_status": material["payment_status"],
+                "topics": material.get("topics", ""),
+                "industries": material.get("industries", ""),
 
                 # Здесь нет TF-IDF-расчёта.
                 "similarity": None,
@@ -521,6 +570,8 @@ class ContentBasedRecommender:
                 "title": material["title"],
                 "url": material["url"],
                 "payment_status": material["payment_status"],
+                "topics": material.get("topics", ""),
+                "industries": material.get("industries", ""),
                 "similarity": round(similarity, 4),
                 "score": round(
                     float(scores[idx]), 4

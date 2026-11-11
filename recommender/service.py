@@ -31,6 +31,12 @@ def get_recommender():
     return ContentBasedRecommender(materials)
 
 
+def reload_recommender():
+    """Сбрасывает кэш и пересобирает модель на свежих данных из БД."""
+    get_recommender.cache_clear()
+    return get_recommender()
+
+
 def get_recommendations(profile=None, top_k=5):
     """
     Основная функция для backend.
@@ -73,6 +79,8 @@ def get_recommendations(profile=None, top_k=5):
             "title": rec["title"],
             "slug": rec["url"],
             "payment_status": rec["payment_status"],
+            "topics": rec.get("topics", ""),
+            "industries": rec.get("industries", ""),
             "score": rec["score"],
             "similarity": rec["similarity"],
             "reasons": rec["reasons"],
@@ -84,6 +92,32 @@ def get_recommendations(profile=None, top_k=5):
         "total": len(items),
         "recommendations": items,
     }
+
+
+def recommend(goal: str, top_k: int = 10) -> list[dict]:
+    """
+    Программный интерфейс по ТЗ Задачи №1.
+    Принимает бизнес-цель строкой и возвращает список словарей
+    с полями: material_id, material_type, title, url, score, topics.
+    """
+    if not isinstance(goal, str) or not goal.strip():
+        raise ValueError("goal must be a non-empty string")
+
+    response = get_recommendations(profile={"goal": goal}, top_k=top_k)
+
+    results = []
+    for item in response["recommendations"]:
+        results.append({
+            "material_id": item["material_id"],
+            "material_type": item["material_type"],
+            "title": item["title"],
+            "url": item["slug"],
+            "score": item["score"],
+            "topics": item.get("topics", ""),
+            "reasons": item["reasons"],
+        })
+
+    return results
 
 
 if __name__ == "__main__":
