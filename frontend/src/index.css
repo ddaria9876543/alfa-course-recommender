@@ -1,0 +1,55 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --alfa-red: #ef3124;
+  --alfa-red-hover: #d42a1f;
+  --alfa-black: #0b0b0b;
+  --alfa-gray-bg: #f5f5f5;
+  --alfa-gray-border: #e5e5e5;
+  --alfa-gray-text: #6b7280;
+  --alfa-white: #ffffff;
+}
+
+body {
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  background-color: var(--alfa-gray-bg);
+  color: var(--alfa-black);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.ant-select-selector {
+  border-color: var(--alfa-gray-border) !important;
+  border-radius: 8px !important;
+}
+
+.ant-btn-primary {
+  background-color: var(--alfa-red) !important;
+  border-color: var(--alfa-red) !important;
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+}
+
+.ant-btn-primary:hover {
+  background-color: var(--alfa-red-hover) !important;
+  border-color: var(--alfa-red-hover) !important;
+}
+
+.ant-btn-default {
+  border-radius: 8px !important;
+}
+
+.ant-tag {
+  border-radius: 6px !important;
+}
