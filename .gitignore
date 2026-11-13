@@ -31,3 +31,4 @@ recommender/reports/
 # Local settings and logs
 .vscode/
 *.log
+.idea/
