@@ -1,5 +1,7 @@
 from backend.services import recommendation as recommendation_service
 from fastapi import APIRouter, HTTPException
+import psycopg
+from backend.services.material import get_material_by_id
 from backend.services import user as user_service
 from backend.schemas.models import (
     RecommendationRequest,
@@ -52,10 +54,18 @@ def get_user_profile(user_id: int):
 
     return user
 
+
 @router.post(
     "/recommendations",
-    response_model=RecommendationResponse
+    response_model=RecommendationResponse,
+    responses={
+        503: {
+            "description": "Рекомендательная система временно недоступна"
+        }
+    }
 )
+
+
 
 @router.post(
     "/recommendations",
@@ -70,7 +80,15 @@ def create_recommendations(request: RecommendationRequest):
             detail="Пользователь не найден"
         )
 
-    return recommendation_service.generate_recommendations(request)
+    try:
+        return recommendation_service.generate_recommendations(request)
+
+    except (RuntimeError, psycopg.Error, OSError) as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Рекомендательная система временно недоступна"
+        ) from exc
+
 
 
     if user is None:
@@ -116,11 +134,26 @@ def create_recommendations(request: RecommendationRequest):
 def submit_feedback(feedback: FeedbackRequest):
     return recommendation_service.save_feedback(feedback)
 
+from fastapi import HTTPException
 @router.get("/materials/{material_id}")
-def get_material(material_id: int):
-    for material in DEMO_MATERIALS:
-        if material["material_id"] == material_id:
-            return material
+def get_material(material_id: str):
+    try:
+        material = get_material_by_id(material_id)
+
+    except (psycopg.Error, OSError):
+        raise HTTPException(
+            status_code=503,
+            detail="База данных временно недоступна"
+        )
+
+    if material is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Материал не найден"
+        )
+
+    return material
+
 
     raise HTTPException(
         status_code=404,

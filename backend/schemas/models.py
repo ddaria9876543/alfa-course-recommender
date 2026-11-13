@@ -29,7 +29,10 @@ class RecommendationResponse(BaseModel):
 
 class FeedbackRequest(BaseModel):
     route_id: str
-    material_id: int
+    class FeedbackRequest(BaseModel):
+        route_id: str
+        material_id: str
+        feedback_type: Literal["already_know", "too_hard", "irrelevant"]
     feedback_type: Literal[
         "already_know",
         "too_hard",
