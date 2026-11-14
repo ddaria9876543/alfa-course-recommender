@@ -9,6 +9,7 @@ interface TrajectoryProps {
   error: string | null;
   feedbackLoading: boolean;
   onFeedback: (materialId: string, type: FeedbackType) => void;
+  feedbackMaterialId?: string | null;
 }
 
 export const Trajectory: React.FC<TrajectoryProps> = ({
@@ -17,6 +18,7 @@ export const Trajectory: React.FC<TrajectoryProps> = ({
   error,
   feedbackLoading,
   onFeedback,
+  feedbackMaterialId,
 }) => {
   if (loading) {
     return (
@@ -61,7 +63,10 @@ export const Trajectory: React.FC<TrajectoryProps> = ({
           recommendation={primary}
           isPrimary
           onFeedback={(type) => onFeedback(primary.material.material_id, type)}
-          feedbackDisabled={feedbackLoading}
+          feedbackDisabled={
+            feedbackLoading &&
+            feedbackMaterialId === primary.material.material_id
+          }
         />
       )}
 
@@ -76,7 +81,7 @@ export const Trajectory: React.FC<TrajectoryProps> = ({
       {feedbackLoading && (
         <div style={styles.recalculating}>
           <Spin size="small" />
-          <span>Пересчитываем маршрут с учётом вашей обратной связи...</span>
+          <span>Сохраняем вашу обратную связь...</span>
         </div>
       )}
     </div>

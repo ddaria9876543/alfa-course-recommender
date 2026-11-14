@@ -32,3 +32,44 @@ recommender/reports/
 .vscode/
 *.log
 .idea/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# PostgreSQL backups and data
+*.backup
+*.dump
+*.sql.gz
+*.sqlite
+*.sqlite3
+pgdata/
+postgres_data/
+
+# Frontend dependencies and build
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/tsconfig.tsbuildinfo
+dist/
+
+# Editor and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local development backups
+backend_main_backup.py
+backend_main_local.py
+*.bak

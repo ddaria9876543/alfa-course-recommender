@@ -54,9 +54,8 @@ def get_recommendations(profile=None, top_k=5):
     if isinstance(top_k, bool) or not isinstance(top_k, int):
         raise ValueError("top_k must be an integer")
 
-    if not 1 <= top_k <= 20:
-        raise ValueError("top_k must be between 1 and 20")
-
+    if not 1 <= top_k <= 100:
+        raise ValueError("top_k must be between 1 and 100")
     model = get_recommender()
 
     recommendations = model.recommend(
@@ -77,6 +76,8 @@ def get_recommendations(profile=None, top_k=5):
             "material_id": rec["material_id"],
             "material_type": rec["material_type"],
             "title": rec["title"],
+            "industry_tags": rec.get("industry_tags") or [],
+            "audience_experience": rec.get("audience_experience"),
             "slug": rec["url"],
             "payment_status": rec["payment_status"],
             "topics": rec.get("topics", ""),

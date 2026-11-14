@@ -71,7 +71,13 @@ def create_recommendations(request: RecommendationRequest):
 
 @router.post("/recommendations/feedback")
 def submit_feedback(feedback: FeedbackRequest):
-    return recommendation_service.save_feedback(feedback)
+    try:
+        return recommendation_service.save_feedback(feedback)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
 
 
 @router.get(
